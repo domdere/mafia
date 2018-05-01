@@ -93,20 +93,22 @@ hoogleIndex args pkgs = do
   db <- hoogleCacheDir
   hoogleExe <- findHoogle
   db' <- (\d -> d </> "hoogle" </> hash) <$> liftCabal initSandbox
-  unlessM (doesFileExist $ db' </> "default.hoo") $ do
-    createDirectoryIfMissing True db'
-    case hoogleExe of
-      Hoogle hoogleExe' Hoogle4x -> do
+  case hoogleExe of
+    Hoogle hoogleExe' Hoogle4x -> do
+      unlessM (doesFileExist $ db' </> "default.hoo") $ do
+        createDirectoryIfMissing True db'
         -- We may also want to copy/symlink all the hoo files here to allow for partial module searching
         call_ MafiaProcessError hoogleExe' $
           ["combine", "--outfile", db' </> "default.hoo"] <> fmap (hoogleDbFile db) pkgs
-        call_ MafiaProcessError (hooglePath hoogleExe) $ ["-d", db'] <> args
-      Hoogle hoogleExe' Hoogle5x -> do
+      call_ MafiaProcessError (hooglePath hoogleExe) $ ["-d", db'] <> args
+    Hoogle hoogleExe' Hoogle5x -> do
+      unlessM (doesFileExist $ db' </> "default.hoo") $ do
+        createDirectoryIfMissing True db'
         call_ MafiaProcessError hoogleExe' . mconcat $ [
             ["generate", "--database", db' </> "default.hoo"]
           , fmap (\f -> "--local=" <> hoogleDbFile db f) pkgs
           ]
-        call_ MafiaProcessError (hooglePath hoogleExe) $ ["-d", db' </> "default.hoo"] <> args
+      call_ MafiaProcessError (hooglePath hoogleExe) $ ["-d", db' </> "default.hoo"] <> args
 
 hooglePackagesCached :: (Functor m, MonadIO m) => m HooglePackagesCached
 hooglePackagesCached = do
